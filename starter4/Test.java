@@ -1,0 +1,10 @@
+
+class Main
+{
+    public void main()
+    {
+        int x = 1;
+        x = 2 + 2;
+    }
+}
+
