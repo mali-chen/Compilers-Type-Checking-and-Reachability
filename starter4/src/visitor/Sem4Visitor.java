@@ -1,10 +1,8 @@
 package visitor;
 
-import syntaxtree.*;
-
-import java.util.*;
-
 import errorMsg.*;
+import java.util.*;
+import syntaxtree.*;
 // The purpose of this class is to do type-checking and related
 // actions.  These include:
 // - evaluate the type for each expression, 
@@ -81,11 +79,11 @@ public class Sem4Visitor extends Visitor
         Type t2 = (Type)p.right.accept(this);
         if(!t1.isInt())
         {
-            errorMsg.error(p.pos, CompError.typeMismatchError(t1, Int));
+            errorMsg.error(p.pos, CompError.TypeMismatch(t1, Int));
         }
         else if(!t2.isInt())
         {
-            errorMsg.error(p.pos, CompError.typeMismatchError(t2, Int));
+            errorMsg.error(p.pos, CompError.TypeMismatch(t2, Int));
         }
         p.type = Int;
         return Int;
