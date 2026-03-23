@@ -73,6 +73,10 @@ public class Sem4Visitor extends Visitor
         return Int;
     }
 
+    // operators
+
+    // + operator
+    @Override
     public Object visit(Plus p)
     {
         Type t1 = (Type)p.left.accept(this);
@@ -89,6 +93,150 @@ public class Sem4Visitor extends Visitor
         return Int;
     }
 
+    // - operator
+    @Override
+    public Object visit(Minus m)
+    {
+        Type t1 = (Type)m.left.accept(this);
+        Type t2 = (Type)m.right.accept(this);
+        if(!t1.isInt())
+        {
+            errorMsg.error(m.pos, CompError.TypeMismatch(t1, Int));
+        }
+        else if(!t2.isInt())
+        {
+            errorMsg.error(m.pos, CompError.TypeMismatch(t2, Int));
+        }
+        m.type = Int;
+        return Int;
+    }
+
+    // * operator
+    @Override
+    public Object visit(Times t)
+    {
+        Type t1 = (Type)t.left.accept(this);
+        Type t2 = (Type)t.right.accept(this);
+        if(!t1.isInt())
+        {
+            errorMsg.error(t.pos, CompError.TypeMismatch(t1, Int));
+        }
+        else if(!t2.isInt())
+        {
+            errorMsg.error(t.pos, CompError.TypeMismatch(t2, Int));
+        }
+        t.type = Int;
+        return Int;
+    }
+
+    // / operator
+    @Override
+    public Object visit(Divide d)
+    {
+        Type t1 = (Type)d.left.accept(this);
+        Type t2 = (Type)d.right.accept(this);
+        if(!t1.isInt())
+        {
+            errorMsg.error(d.pos, CompError.TypeMismatch(t1, Int));
+        }
+        else if(!t2.isInt())
+        {
+            errorMsg.error(d.pos, CompError.TypeMismatch(t2, Int));
+        }
+        d.type = Int;
+        return Int;
+    }
+
+    // % operator
+    @Override
+    public Object visit(Remainder r)
+    {
+        Type t1 = (Type)r.left.accept(this);
+        Type t2 = (Type)r.right.accept(this);
+        if(!t1.isInt())
+        {
+            errorMsg.error(r.pos, CompError.TypeMismatch(t1, Int));
+        }
+        else if(!t2.isInt())
+        {
+            errorMsg.error(r.pos, CompError.TypeMismatch(t2, Int));
+        }
+        r.type = Int;
+        return Int;
+    }
+
+    // > operator
+    @Override
+    public Object visit(LessThan l)
+    {
+        Type t1 = (Type)l.left.accept(this);
+        Type t2 = (Type)l.right.accept(this);
+        if(!t1.isInt())
+        {
+            errorMsg.error(l.pos, CompError.TypeMismatch(t1, Int));
+        }
+        else if(!t2.isInt())
+        {
+            errorMsg.error(l.pos, CompError.TypeMismatch(t2, Int));
+        }
+        l.type = Bool;
+        return Bool;
+    }
+
+    // < operator
+    @Override
+    public Object visit(GreaterThan g)
+    {
+        Type t1 = (Type)g.left.accept(this);
+        Type t2 = (Type)g.right.accept(this);
+        if(!t1.isInt())
+        {
+            errorMsg.error(g.pos, CompError.TypeMismatch(t1, Int));
+        }
+        else if(!t2.isInt())
+        {
+            errorMsg.error(g.pos, CompError.TypeMismatch(t2, Int));
+        }
+        g.type = Bool;
+        return Bool;
+    }
+
+    // && operator
+    @Override
+    public Object visit(And a)
+    {
+        Type t1 = (Type)a.left.accept(this);
+        Type t2 = (Type)a.right.accept(this);
+        if(!t1.isInt())
+        {
+            errorMsg.error(a.pos, CompError.TypeMismatch(t1, Int));
+        }
+        else if(!t2.isInt())
+        {
+            errorMsg.error(a.pos, CompError.TypeMismatch(t2, Int));
+        }
+        a.type = Bool;
+        return Bool;
+    }
+
+    // || operator
+    @Override
+    public Object visit(Or o)
+    {
+        Type t1 = (Type)o.left.accept(this);
+        Type t2 = (Type)o.right.accept(this);
+        if(!t1.isInt())
+        {
+            errorMsg.error(o.pos, CompError.TypeMismatch(t1, Int));
+        }
+        else if(!t2.isInt())
+        {
+            errorMsg.error(o.pos, CompError.TypeMismatch(t2, Int));
+        }
+        o.type = Bool;
+        return Bool;
+    }
+    
     @Override
     public Object visit(ClassDecl n){
         ClassDecl prevClass = currentClass;
@@ -129,7 +277,6 @@ public class Sem4Visitor extends Visitor
         f.type = Bool;
         return Bool;
     }
-
 
     @Override
     public Object visit(Null n){
