@@ -207,11 +207,11 @@ public class Sem4Visitor extends Visitor
     {
         Type t1 = (Type)a.left.accept(this);
         Type t2 = (Type)a.right.accept(this);
-        if(!t1.isInt())
+        if(!t1.isBoolean())
         {
             errorMsg.error(a.pos, CompError.TypeMismatch(t1, Int));
         }
-        else if(!t2.isInt())
+        else if(!t2.isBoolean())
         {
             errorMsg.error(a.pos, CompError.TypeMismatch(t2, Int));
         }
@@ -225,15 +225,33 @@ public class Sem4Visitor extends Visitor
     {
         Type t1 = (Type)o.left.accept(this);
         Type t2 = (Type)o.right.accept(this);
-        if(!t1.isInt())
+        if(!t1.isBoolean())
         {
             errorMsg.error(o.pos, CompError.TypeMismatch(t1, Int));
         }
-        else if(!t2.isInt())
+        else if(!t2.isBoolean())
         {
             errorMsg.error(o.pos, CompError.TypeMismatch(t2, Int));
         }
         o.type = Bool;
+        return Bool;
+    }
+
+    // == operator
+    @Override
+    public Object visit(Equals e)
+    {
+        Type t1 = (Type)e.left.accept(this);
+        Type t2 = (Type)e.right.accept(this);
+        if(!isSubtype(t1, t2) && !isSubtype(t2, t1))
+        {
+            errorMsg.error(e.pos, CompError.IncompatibleType(t1, t2));
+        }
+        if(t1.isVoid() || t2.isVoid())
+        {
+            errorMsg.error(e.pos, CompError.IncompatibleType(t1, t2));
+        }
+        e.type = Bool;
         return Bool;
     }
     
@@ -313,5 +331,62 @@ public class Sem4Visitor extends Visitor
         return i.link.type;
     }
 
+    private boolean isSubtype(Type sub, Type sup){
+        // if either type is missing, assume it's okay 
+        if (sub == null){
+            return true;
+        }
+        if (sup == null){
+            return true;
+        }
+
+        // error check
+        if (sub.isError()){
+            return true;
+        }
+        if (sup.isError()){
+            return true;
+        }
+
+        // if the same type, it's a match
+        if (sub.equals(sup)){
+            return true;
+        }
+
+        // null check
+        if (sub.isNull()){
+            if (sup.isID() || sup.isArray() || sup.isObject()){
+                return true;
+            }
+        }
+
+        // object check
+        if (sup.isObject()){
+            if (sub.isID() || sub.isArray() || sub.isNull()){
+                return true;
+            }
+        }
+
+        // inheritance check
+        if (sub.isID()){
+            if (sup.isID()){
+                // get the class definitions from the links
+                ClassDecl cur = ((IDType) sub).link;
+                ClassDecl target = ((IDType) sup).link;
+
+                // follow the 'superLink' up until we find a match or hit the top (null)
+                while (cur != null) {
+                    if (cur == target) {
+                        return true; // found the parent
+                    }
+                    // move up to the next parent class
+                    cur = cur.superLink;
+                }
+            }
+        }
+
+        // if none matched, it's not a subtype
+        return false;
+    }
 }
 
