@@ -89,5 +89,82 @@ public class Sem4Visitor extends Visitor
         return Int;
     }
 
+    @Override
+    public Object visit(ClassDecl n){
+        ClassDecl prevClass = currentClass;
+        IDType prevType = currentType;
+        IDType prevSuper = superType;
+
+        currentClass = n;
+        currentType = new IDType(n.pos, n.name);
+        currentType.link = n;
+
+        if(n.superLink != null){
+            superType = new IDType(n.pos, n.superName);
+            superType.link = n.superLink;
+        }
+        else{
+            superType = null;
+        }
+
+        // visit all methods/fields inside
+        n.decls.accept(this);
+
+        currentClass = prevClass;
+        currentType = prevType;
+        superType = prevSuper;
+
+        return null;
+    }
+
+    // expression visitors
+    @Override
+    public Object visit(True t){
+        t.type = Bool;
+        return Bool;
+    }
+
+    @Override
+    public Object visit(False f){
+        f.type = Bool;
+        return Bool;
+    }
+
+
+    @Override
+    public Object visit(Null n){
+        n.type = Null;
+        return Null;
+    }
+
+    @Override
+    public Object visit(StringLit s){
+        s.type = StringType;
+        return StringType;
+    }
+
+    @Override
+    public Object visit(This t){
+        t.type = currentType;
+        return currentType;
+    }
+
+    @Override
+    public Object visit(Super s){
+        s.type = superType;
+        return superType;
+    }
+
+    @Override
+    public Object visit(IDExp i){
+        if(i.link == null){
+            i.type = Error;
+            return Error;
+        }
+        
+        i.type = i.link.type;
+        return i.link.type;
+    }
+
 }
 
