@@ -237,6 +237,19 @@ public class Sem4Visitor extends Visitor
         return Bool;
     }
 
+    // ! operator
+    @Override
+    public Object visit(Not n)
+    {
+        Type t = safeType((Type)n.exp.accept(this));
+        if(!t.isBoolean())
+            {
+            errorMsg.error(n.pos, CompError.TypeMismatch(t, Bool));
+        }
+        n.type = Bool;
+        return Bool;
+    }
+
     // == operator
     @Override
     public Object visit(Equals e)
@@ -374,7 +387,7 @@ public class Sem4Visitor extends Visitor
                 ClassDecl cur = ((IDType) sub).link;
                 ClassDecl target = ((IDType) sup).link;
 
-                // follow the 'superLink' up until we find a match or hit the top (null)
+                // follow the 'superLink' up until a match is found or hit the top (null)
                 while (cur != null) {
                     if (cur == target) {
                         return true; // found the parent
@@ -388,5 +401,173 @@ public class Sem4Visitor extends Visitor
         // if none matched, it's not a subtype
         return false;
     }
+
+    private Type safeType(Type t){
+        // subexpression missing, return "Error" type
+        if (t == null){
+            return Error;
+        }
+        else{ // not null, safe to use original type
+            return t;
+        }
+    }
+
+    // check .length is called on an array and return int
+    @Override
+    public Object visit(ArrayLength n){
+        Type t = safeType((Type)n.exp.accept(this));
+        if(!t.isArray()){
+            errorMsg.error(n.pos, CompError.IllegalLength());
+        }
+        n.type = Int;
+        return Int;
+    }
+
+    // return the IDType of the class being instantiated
+    @Override
+    public Object visit(NewObject n){
+        n.type = n.objType;
+        return n.objType;
+    }
+
+    // ensure size is int and wrap the base type in an ArrayType
+    @Override
+    public Object visit(NewArray n){
+        // check size expression is an int
+        Type sizeType = safeType((Type)n.sizeExp.accept(this));
+        if(!sizeType.isInt()){
+            errorMsg.error(n.pos, CompError.TypeMismatch(sizeType, Int));
+        }
+        n.type = new ArrayType(n.pos, n.objType);
+        return n.type;
+    }
+
+    // helper method searches method by name 
+    private MethodDecl findMethod(ClassDecl startClass, String methodName){
+        ClassDecl searchClass = startClass;
+        
+        // look for class to check
+        while(searchClass != null){
+            MethodDecl foundMethod = searchClass.methodEnv.get(methodName);
+            
+            // if found, return it
+            if(foundMethod != null){
+                return foundMethod;
+            }
+            // not found, move to parent class and try again
+            searchClass = searchClass.superLink; 
+        }
+        return null;
+    }
+
+    // helper method searches for a variable (field) by name 
+    private FieldDecl findField(ClassDecl startClass, String fieldName) {
+        ClassDecl searchClass = startClass;
+        
+        while (searchClass != null){
+            // look in the current class's variables
+            FieldDecl foundField = searchClass.fieldEnv.get(fieldName);
+            
+            // if found, return it
+            if (foundField != null){
+                return foundField;
+            }
+            // not found, move to parent class and try again
+            searchClass = searchClass.superLink; 
+        }
+        return null;
+    }
+       
+    @Override
+    public Object visit(FieldAccess n){
+        // type of the object before the dot
+        Type objType = safeType((Type)n.exp.accept(this));
+
+        // can only access fields on Classes (IDTypes)
+        if(!objType.isID()){
+            errorMsg.error(n.pos, CompError.UndefinedField(n.varName, objType));
+            n.type = Error;
+            return Error;
+        }
+
+        // get the class definition and search for the field name
+        ClassDecl cls = ((IDType) objType).link;
+        FieldDecl field = findField(cls, n.varName);
+
+        // if the field doesn't exist in this class or any parent classes
+        if (field == null){
+            errorMsg.error(n.pos, CompError.UndefinedField(n.varName, objType));
+            n.type = Error;
+            return Error;
+        }
+
+        // link AST node to the field and record its type
+        n.varDec = field;
+        n.type = field.type;
+        return field.type;
+    }
+
+    @Override
+    public Object visit(Call n){
+        // determine typeof object being called
+        Type objType = safeType((Type)n.obj.accept(this));
+
+        // visit all arguments passed in
+        for(int i = 0; i < n.args.size(); i++){
+            syntaxtree.Exp argument = (syntaxtree.Exp) n.args.get(i);
+            argument.accept(this);
+        }
+
+        // only call methods on classes
+        if(!objType.isID()){
+            errorMsg.error(n.pos, CompError.UndefinedMethod(n.methName, objType));
+            n.type = Error;
+            return Error;
+        }
+
+        // look up method in class hierarchy
+        ClassDecl receiverClass = ((IDType) objType).link;
+        MethodDecl method = findMethod(receiverClass, n.methName);
+
+        if(method == null){
+            errorMsg.error(n.pos, CompError.UndefinedMethod(n.methName, objType));
+            n.type = Error;
+            return Error;
+        }
+
+        // link call to method definition
+        n.methodLink = method;
+        
+        // compare the number of arguments provided to what the method requires
+        if (n.args.size() != method.params.size()){
+            errorMsg.error(n.pos, CompError.ParameterMismatch(n.methName, n.args.size(), method.params.size()));
+        } else{
+            // check if each argument's type matches the parameter's type
+            for (int i = 0; i < n.args.size(); i++){
+                syntaxtree.Exp argNode = (syntaxtree.Exp) n.args.get(i);
+                syntaxtree.VarDecl paramNode = (syntaxtree.VarDecl) method.params.get(i);
+                
+                Type argType = safeType(argNode.type);
+                Type paramType = paramNode.type;
+
+                // use helper to see if the types are compatible
+                if (!isSubtype(argType, paramType)) {
+                    errorMsg.error(n.pos, CompError.TypeMismatch(argType, paramType));
+                }
+            }
+        }
+
+        // determine the return type of the whole expression
+        if(method instanceof MethodDeclNonVoid nonVoidMethod){
+            n.type = nonVoidMethod.rtnType;
+            return n.type;
+        } else {
+            // method is 'void', so has no return type
+            n.type = Void;
+            return Void;
+        }
+
+    }
+
 }
 
