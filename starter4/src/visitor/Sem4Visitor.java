@@ -79,8 +79,8 @@ public class Sem4Visitor extends Visitor
     @Override
     public Object visit(Plus p)
     {
-        Type t1 = (Type)p.left.accept(this);
-        Type t2 = (Type)p.right.accept(this);
+        Type t1 = safeType((Type)p.left.accept(this));
+        Type t2 = safeType((Type)p.right.accept(this));
         if(!t1.isInt())
         {
             errorMsg.error(p.pos, CompError.TypeMismatch(t1, Int));
@@ -97,8 +97,8 @@ public class Sem4Visitor extends Visitor
     @Override
     public Object visit(Minus m)
     {
-        Type t1 = (Type)m.left.accept(this);
-        Type t2 = (Type)m.right.accept(this);
+        Type t1 = safeType((Type)m.left.accept(this));
+        Type t2 = safeType((Type)m.right.accept(this));
         if(!t1.isInt())
         {
             errorMsg.error(m.pos, CompError.TypeMismatch(t1, Int));
@@ -115,8 +115,8 @@ public class Sem4Visitor extends Visitor
     @Override
     public Object visit(Times t)
     {
-        Type t1 = (Type)t.left.accept(this);
-        Type t2 = (Type)t.right.accept(this);
+        Type t1 = safeType((Type)t.left.accept(this));
+        Type t2 = safeType((Type)t.right.accept(this));
         if(!t1.isInt())
         {
             errorMsg.error(t.pos, CompError.TypeMismatch(t1, Int));
@@ -133,8 +133,8 @@ public class Sem4Visitor extends Visitor
     @Override
     public Object visit(Divide d)
     {
-        Type t1 = (Type)d.left.accept(this);
-        Type t2 = (Type)d.right.accept(this);
+        Type t1 = safeType((Type)d.left.accept(this));
+        Type t2 = safeType((Type)d.right.accept(this));
         if(!t1.isInt())
         {
             errorMsg.error(d.pos, CompError.TypeMismatch(t1, Int));
@@ -151,8 +151,8 @@ public class Sem4Visitor extends Visitor
     @Override
     public Object visit(Remainder r)
     {
-        Type t1 = (Type)r.left.accept(this);
-        Type t2 = (Type)r.right.accept(this);
+        Type t1 = safeType((Type)r.left.accept(this));
+        Type t2 = safeType((Type)r.right.accept(this));
         if(!t1.isInt())
         {
             errorMsg.error(r.pos, CompError.TypeMismatch(t1, Int));
@@ -169,8 +169,8 @@ public class Sem4Visitor extends Visitor
     @Override
     public Object visit(LessThan l)
     {
-        Type t1 = (Type)l.left.accept(this);
-        Type t2 = (Type)l.right.accept(this);
+        Type t1 = safeType((Type)l.left.accept(this));
+        Type t2 = safeType((Type)l.right.accept(this));
         if(!t1.isInt())
         {
             errorMsg.error(l.pos, CompError.TypeMismatch(t1, Int));
@@ -187,8 +187,8 @@ public class Sem4Visitor extends Visitor
     @Override
     public Object visit(GreaterThan g)
     {
-        Type t1 = (Type)g.left.accept(this);
-        Type t2 = (Type)g.right.accept(this);
+        Type t1 = safeType((Type)g.left.accept(this));
+        Type t2 = safeType((Type)g.right.accept(this));
         if(!t1.isInt())
         {
             errorMsg.error(g.pos, CompError.TypeMismatch(t1, Int));
@@ -205,15 +205,15 @@ public class Sem4Visitor extends Visitor
     @Override
     public Object visit(And a)
     {
-        Type t1 = (Type)a.left.accept(this);
-        Type t2 = (Type)a.right.accept(this);
+        Type t1 = safeType((Type)a.left.accept(this));
+        Type t2 = safeType((Type)a.right.accept(this));
         if(!t1.isBoolean())
         {
-            errorMsg.error(a.pos, CompError.TypeMismatch(t1, Int));
+            errorMsg.error(a.pos, CompError.TypeMismatch(t1, Bool));
         }
         else if(!t2.isBoolean())
         {
-            errorMsg.error(a.pos, CompError.TypeMismatch(t2, Int));
+            errorMsg.error(a.pos, CompError.TypeMismatch(t2, Bool));
         }
         a.type = Bool;
         return Bool;
@@ -223,15 +223,15 @@ public class Sem4Visitor extends Visitor
     @Override
     public Object visit(Or o)
     {
-        Type t1 = (Type)o.left.accept(this);
-        Type t2 = (Type)o.right.accept(this);
+        Type t1 = safeType((Type)o.left.accept(this));
+        Type t2 = safeType((Type)o.right.accept(this));
         if(!t1.isBoolean())
         {
-            errorMsg.error(o.pos, CompError.TypeMismatch(t1, Int));
+            errorMsg.error(o.pos, CompError.TypeMismatch(t1, Bool));
         }
         else if(!t2.isBoolean())
         {
-            errorMsg.error(o.pos, CompError.TypeMismatch(t2, Int));
+            errorMsg.error(o.pos, CompError.TypeMismatch(t2, Bool));
         }
         o.type = Bool;
         return Bool;
@@ -566,7 +566,61 @@ public class Sem4Visitor extends Visitor
             n.type = Void;
             return Void;
         }
+    }
 
+    // LocalVarDecl: check that the init expression type is a subtype of the declared type
+    @Override
+    public Object visit(LocalVarDecl n){
+        Type initType = safeType((Type)n.initExp.accept(this));
+        n.type.accept(this);
+
+        if(!isSubtype(initType, n.type)){
+            errorMsg.error(n.pos, CompError.TypeMismatch(initType, n.type));
+        }
+        return null;
+    }
+
+    // Assign: check lhs is an lvalue and rhs is a subtype of lhs type
+    @Override
+    public Object visit(Assign n){
+        Type lhsType = safeType((Type)n.lhs.accept(this));
+        Type rhsType = safeType((Type)n.rhs.accept(this));
+
+        // lhs must be a variable, field access, or array lookup, not a literal
+        if (!(n.lhs instanceof IDExp) && !(n.lhs instanceof FieldAccess) &&
+            !(n.lhs instanceof ArrayLookup)){
+            errorMsg.error(n.pos, CompError.Assignment());
+        }
+        else if(!isSubtype(rhsType, lhsType)){
+            errorMsg.error(n.pos, CompError.TypeMismatch(rhsType, lhsType));
+        }
+
+        return null;
+    }
+
+    // If: condition needs to be boolean
+    @Override
+    public Object visit(If n){
+        Type condType = safeType((Type)n.exp.accept(this));
+        if (!condType.isBoolean()){
+            errorMsg.error(n.pos, CompError.TypeMismatch(condType, Bool));
+        }
+        n.trueStmt.accept(this);
+        n.falseStmt.accept(this);
+
+        return null;
+    }
+
+    // While: condition needs to be boolean
+    @Override
+    public Object visit(While n){
+        Type condType = safeType((Type)n.exp.accept(this));
+        if (!condType.isBoolean()){
+            errorMsg.error(n.pos, CompError.TypeMismatch(condType, Bool));
+        }
+        n.body.accept(this);
+
+        return null;
     }
 
 }
