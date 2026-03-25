@@ -666,5 +666,110 @@ public class Sem4Visitor extends Visitor
 
         return null;
     }
+
+    // cast: checks if 2 types are related (1 is a parent of the other)
+    @Override
+    public Object visit(Cast n){
+        Type exprType = safeType((Type)n.exp.accept(this));
+        Type castTo = n.castType;
+        // cast is legal if the types are in the same family tree
+        if (!isSubtype(exprType, castTo) && !isSubtype(castTo, exprType)){
+            errorMsg.error(n.pos, CompError.IncompatibleType(exprType, castTo));
+        }
+
+        n.type = castTo;
+        return castTo;
+    }
+
+    // InstanceOf: checks if 2 types are related (1 is a parent of the other)
+    @Override
+    public Object visit(InstanceOf n) {
+        Type exprType = safeType((Type)n.exp.accept(this));
+        Type checkType = n.checkType;
+        // cast is legal if the types are in the same family tree
+        if (!isSubtype(exprType, checkType) && !isSubtype(checkType, exprType)) {
+            errorMsg.error(n.pos, CompError.IncompatibleType(exprType, checkType));
+        }
+
+        n.type = Bool;
+        return Bool;
+    }
+
+    // helper to check that a subclass method has the same signature as the superclass method
+    private void checkOverride(MethodDecl sub, MethodDecl sup){
+        // must have same void-ness
+        boolean subVoid = (sub instanceof MethodDeclVoid);
+        boolean supVoid = (sup instanceof MethodDeclVoid);
+        if(subVoid != supVoid) {
+            errorMsg.error(sub.pos, CompError.ReturnOverride());
+            return;
+        }
+
+        // must have same number of parameters
+        if(sub.params.size() != sup.params.size()){
+            errorMsg.error(sub.pos, CompError.NumArgsOverride());
+            return;
+        }
+ 
+        // each parameter type must be exact match
+        for(int i = 0; i < sub.params.size(); i++){
+            Type subParam = ((VarDecl) sub.params.get(i)).type;
+            Type supParam = ((VarDecl) sup.params.get(i)).type;
+            if(!subParam.equals(supParam)){
+                errorMsg.error(sub.pos, CompError.ArgTypeOverride());
+                return;
+            }
+        }
+ 
+        // if both non void, return types must be exact match
+        if(!subVoid){
+            Type subRtn = ((MethodDeclNonVoid) sub).rtnType;
+            Type supRtn = ((MethodDeclNonVoid) sup).rtnType;
+            if(!subRtn.equals(supRtn)) {
+                errorMsg.error(sub.pos, CompError.ReturnOverride());
+            }
+        }
+    }
+ 
+    // void method declaration
+    @Override
+    public Object visit(MethodDeclVoid n)
+    {
+        // check if this overrides a superclass method
+        if(currentClass != null && currentClass.superLink != null){
+            MethodDecl supMethod = findMethod(currentClass.superLink, n.name);
+            if(supMethod != null){
+                n.superMethod = supMethod;
+                checkOverride(n, supMethod);
+            }
+        }
+
+        n.stmts.accept(this);
+        return null;
+    }
+ 
+    // non void method declaration
+    @Override
+    public Object visit(MethodDeclNonVoid n)
+    {
+        // check if this overrides a superclass method
+        if(currentClass != null && currentClass.superLink != null){
+            MethodDecl supMethod = findMethod(currentClass.superLink, n.name);
+            if(supMethod != null){
+                n.superMethod = supMethod;
+                checkOverride(n, supMethod);
+            }
+        }
+
+        n.params.accept(this);
+        n.stmts.accept(this);
+
+        Type rtnExpType = safeType((Type)n.rtnExp.accept(this));
+        if(!isSubtype(rtnExpType, n.rtnType)){
+            errorMsg.error(n.pos, CompError.Subtype(rtnExpType, n.rtnType));
+        }
+        return null;
+    }
+    
 }
 
