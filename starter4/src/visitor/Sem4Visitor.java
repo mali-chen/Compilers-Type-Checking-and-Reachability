@@ -438,8 +438,15 @@ public class Sem4Visitor extends Visitor
         // check size expression is an int
         Type sizeType = safeType((Type)n.sizeExp.accept(this));
         if(!sizeType.isInt()){
-            errorMsg.error(n.pos, CompError.TypeMismatch(sizeType, Int));
+            errorMsg.error(n.sizeExp.pos, CompError.TypeMismatch(sizeType, Int));
         }
+
+        // if size is a negative constant
+        Integer val = evalConstant(n.sizeExp);
+        if(val != null && val < 0){
+            errorMsg.error(n.sizeExp.pos, CompError.IllegalLength());
+        }
+
         n.type = new ArrayType(n.pos, n.objType);
         return n.type;
     }
@@ -457,6 +464,13 @@ public class Sem4Visitor extends Visitor
         if(!ideType.isInt()){
             errorMsg.error(n.pos, CompError.TypeMismatch(ideType, Int));
         }
+
+        // if size is a negative constant
+        Integer val = evalConstant(n.idxExp);
+        if(val != null && val < 0){
+            errorMsg.error(n.idxExp.pos, CompError.IllegalLength());
+        }
+
         if(!arrType.isArray()){
             n.type = Error;
             return Error;
@@ -466,6 +480,77 @@ public class Sem4Visitor extends Visitor
         n.type = elemType;
         return elemType;
     }
+
+    // helper method evaluate a constant int expression
+    private Integer evalConstant(Exp e){
+        // plain number
+        if(e instanceof IntLit){
+            IntLit literal = (IntLit) e;
+            return literal.val;
+        }
+
+        // addition
+        if(e instanceof Plus){
+            Plus p = (Plus) e;
+            Integer leftside = evalConstant(p.left);
+            Integer rightside = evalConstant(p.right);
+            
+            // add 2 ints
+            if(leftside != null && rightside != null){
+                return leftside + rightside;
+            }
+        }
+
+        // subtraction
+        if(e instanceof Minus){
+            Minus m = (Minus) e;
+            Integer leftside = evalConstant(m.left);
+            Integer rightside = evalConstant(m.right);
+            
+            // subtract 2 ints
+            if(leftside != null && rightside != null){
+                return leftside - rightside;
+            }
+        }
+
+        // multiplicaion
+        if(e instanceof Times){
+            Times t = (Times) e;
+            Integer leftside = evalConstant(t.left);
+            Integer rightside = evalConstant(t.right);
+            
+            // multiply 2 ints
+            if(leftside != null && rightside != null){
+                return leftside * rightside;
+            }
+        }
+
+        // division
+        if(e instanceof Divide){
+            Divide d = (Divide) e;
+            Integer leftside = evalConstant(d.left);
+            Integer rightside = evalConstant(d.right);
+            
+            // divide 2 ints
+            if(leftside != null && rightside != null){
+                return leftside / rightside;
+            }
+        }
+
+        // remainder
+        if(e instanceof Remainder){
+            Remainder r = (Remainder) e;
+            Integer leftside = evalConstant(r.left);
+            Integer rightside = evalConstant(r.right);
+            
+            // divide 2 ints
+            if(leftside != null && rightside != null){
+                return leftside % rightside;
+            }
+        }
+        return null;
+    }
+
 
     // helper method searches method by name 
     private MethodDecl findMethod(ClassDecl startClass, String methodName){
@@ -650,7 +735,7 @@ public class Sem4Visitor extends Visitor
     public Object visit(If n){
         Type condType = safeType((Type)n.exp.accept(this));
         if (!condType.isBoolean()){
-            errorMsg.error(n.pos, CompError.TypeMismatch(condType, Bool));
+            errorMsg.error(n.exp.pos, CompError.TypeMismatch(condType, Bool));
         }
         n.trueStmt.accept(this);
         n.falseStmt.accept(this);
@@ -663,7 +748,7 @@ public class Sem4Visitor extends Visitor
     public Object visit(While n){
         Type condType = safeType((Type)n.exp.accept(this));
         if (!condType.isBoolean()){
-            errorMsg.error(n.pos, CompError.TypeMismatch(condType, Bool));
+            errorMsg.error(n.exp.pos, CompError.TypeMismatch(condType, Bool));
         }
         n.body.accept(this);
 
