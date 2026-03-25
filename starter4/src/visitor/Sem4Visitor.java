@@ -83,11 +83,11 @@ public class Sem4Visitor extends Visitor
         Type t2 = safeType((Type)p.right.accept(this));
         if(!t1.isInt())
         {
-            errorMsg.error(p.pos, CompError.TypeMismatch(t1, Int));
+            errorMsg.error(p.left.pos, CompError.TypeMismatch(t1, Int));
         }
-        else if(!t2.isInt())
+        if(!t2.isInt())
         {
-            errorMsg.error(p.pos, CompError.TypeMismatch(t2, Int));
+            errorMsg.error(p.right.pos, CompError.TypeMismatch(t2, Int));
         }
         p.type = Int;
         return Int;
@@ -101,11 +101,11 @@ public class Sem4Visitor extends Visitor
         Type t2 = safeType((Type)m.right.accept(this));
         if(!t1.isInt())
         {
-            errorMsg.error(m.pos, CompError.TypeMismatch(t1, Int));
+            errorMsg.error(m.left.pos, CompError.TypeMismatch(t1, Int));
         }
-        else if(!t2.isInt())
+        if(!t2.isInt())
         {
-            errorMsg.error(m.pos, CompError.TypeMismatch(t2, Int));
+            errorMsg.error(m.right.pos, CompError.TypeMismatch(t2, Int));
         }
         m.type = Int;
         return Int;
@@ -119,11 +119,11 @@ public class Sem4Visitor extends Visitor
         Type t2 = safeType((Type)t.right.accept(this));
         if(!t1.isInt())
         {
-            errorMsg.error(t.pos, CompError.TypeMismatch(t1, Int));
+            errorMsg.error(t.left.pos, CompError.TypeMismatch(t1, Int));
         }
-        else if(!t2.isInt())
+        if(!t2.isInt())
         {
-            errorMsg.error(t.pos, CompError.TypeMismatch(t2, Int));
+            errorMsg.error(t.right.pos, CompError.TypeMismatch(t2, Int));
         }
         t.type = Int;
         return Int;
@@ -137,11 +137,11 @@ public class Sem4Visitor extends Visitor
         Type t2 = safeType((Type)d.right.accept(this));
         if(!t1.isInt())
         {
-            errorMsg.error(d.pos, CompError.TypeMismatch(t1, Int));
+            errorMsg.error(d.left.pos, CompError.TypeMismatch(t1, Int));
         }
-        else if(!t2.isInt())
+        if(!t2.isInt())
         {
-            errorMsg.error(d.pos, CompError.TypeMismatch(t2, Int));
+            errorMsg.error(d.right.pos, CompError.TypeMismatch(t2, Int));
         }
         d.type = Int;
         return Int;
@@ -155,11 +155,11 @@ public class Sem4Visitor extends Visitor
         Type t2 = safeType((Type)r.right.accept(this));
         if(!t1.isInt())
         {
-            errorMsg.error(r.pos, CompError.TypeMismatch(t1, Int));
+            errorMsg.error(r.left.pos, CompError.TypeMismatch(t1, Int));
         }
-        else if(!t2.isInt())
+        if(!t2.isInt())
         {
-            errorMsg.error(r.pos, CompError.TypeMismatch(t2, Int));
+            errorMsg.error(r.right.pos, CompError.TypeMismatch(t2, Int));
         }
         r.type = Int;
         return Int;
@@ -173,11 +173,11 @@ public class Sem4Visitor extends Visitor
         Type t2 = safeType((Type)l.right.accept(this));
         if(!t1.isInt())
         {
-            errorMsg.error(l.pos, CompError.TypeMismatch(t1, Int));
+            errorMsg.error(l.left.pos, CompError.TypeMismatch(t1, Int));
         }
-        else if(!t2.isInt())
+        if(!t2.isInt())
         {
-            errorMsg.error(l.pos, CompError.TypeMismatch(t2, Int));
+            errorMsg.error(l.right.pos, CompError.TypeMismatch(t2, Int));
         }
         l.type = Bool;
         return Bool;
@@ -191,11 +191,11 @@ public class Sem4Visitor extends Visitor
         Type t2 = safeType((Type)g.right.accept(this));
         if(!t1.isInt())
         {
-            errorMsg.error(g.pos, CompError.TypeMismatch(t1, Int));
+            errorMsg.error(g.left.pos, CompError.TypeMismatch(t1, Int));
         }
-        else if(!t2.isInt())
+        if(!t2.isInt())
         {
-            errorMsg.error(g.pos, CompError.TypeMismatch(t2, Int));
+            errorMsg.error(g.right.pos, CompError.TypeMismatch(t2, Int));
         }
         g.type = Bool;
         return Bool;
@@ -209,11 +209,11 @@ public class Sem4Visitor extends Visitor
         Type t2 = safeType((Type)a.right.accept(this));
         if(!t1.isBoolean())
         {
-            errorMsg.error(a.pos, CompError.TypeMismatch(t1, Bool));
+            errorMsg.error(a.left.pos, CompError.TypeMismatch(t1, Bool));
         }
-        else if(!t2.isBoolean())
+        if(!t2.isBoolean())
         {
-            errorMsg.error(a.pos, CompError.TypeMismatch(t2, Bool));
+            errorMsg.error(a.right.pos, CompError.TypeMismatch(t2, Bool));
         }
         a.type = Bool;
         return Bool;
@@ -227,11 +227,11 @@ public class Sem4Visitor extends Visitor
         Type t2 = safeType((Type)o.right.accept(this));
         if(!t1.isBoolean())
         {
-            errorMsg.error(o.pos, CompError.TypeMismatch(t1, Bool));
+            errorMsg.error(o.left.pos, CompError.TypeMismatch(t1, Bool));
         }
-        else if(!t2.isBoolean())
+        if(!t2.isBoolean())
         {
-            errorMsg.error(o.pos, CompError.TypeMismatch(t2, Bool));
+            errorMsg.error(o.right.pos, CompError.TypeMismatch(t2, Bool));
         }
         o.type = Bool;
         return Bool;
@@ -450,11 +450,14 @@ public class Sem4Visitor extends Visitor
         // check size expression is an int
         Type arrType = safeType((Type)n.arrExp.accept(this));
         Type ideType = safeType((Type)n.idxExp.accept(this));
+        
+        if(!arrType.isArray()){
+            errorMsg.error(n.pos, CompError.ArrayType());
+        }
         if(!ideType.isInt()){
             errorMsg.error(n.pos, CompError.TypeMismatch(ideType, Int));
         }
         if(!arrType.isArray()){
-            errorMsg.error(n.pos, CompError.ArrayType());
             n.type = Error;
             return Error;
         }
@@ -575,7 +578,7 @@ public class Sem4Visitor extends Visitor
 
                 // use helper to see if the types are compatible
                 if (!isSubtype(argType, paramType)) {
-                    errorMsg.error(n.pos, CompError.TypeMismatch(argType, paramType));
+                    errorMsg.error(argNode.pos, CompError.Subtype(argType, paramType));
                 }
             }
         }
@@ -619,7 +622,7 @@ public class Sem4Visitor extends Visitor
         n.type.accept(this);
 
         if(!isSubtype(initType, n.type)){
-            errorMsg.error(n.pos, CompError.TypeMismatch(initType, n.type));
+            errorMsg.error(n.pos, CompError.Subtype(initType, n.type));
         }
         return null;
     }
@@ -636,7 +639,7 @@ public class Sem4Visitor extends Visitor
             errorMsg.error(n.pos, CompError.Assignment());
         }
         else if(!isSubtype(rhsType, lhsType)){
-            errorMsg.error(n.pos, CompError.TypeMismatch(rhsType, lhsType));
+            errorMsg.error(n.pos, CompError.Subtype(rhsType, lhsType));
         }
 
         return null;
