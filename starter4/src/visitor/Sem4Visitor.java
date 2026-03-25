@@ -260,7 +260,7 @@ public class Sem4Visitor extends Visitor
         {
             errorMsg.error(e.pos, CompError.IncompatibleType(t1, t2));
         }
-        if(t1.isVoid() || t2.isVoid())
+        if((t1 != null && t1.isVoid()) || (t2 != null && t2.isVoid()))
         {
             errorMsg.error(e.pos, CompError.IncompatibleType(t1, t2));
         }
@@ -345,7 +345,7 @@ public class Sem4Visitor extends Visitor
     }
 
     private boolean isSubtype(Type sub, Type sup){
-        // if either type is missing, assume it's okay 
+        // if either type is missing, it's ok
         if (sub == null){
             return true;
         }
@@ -412,6 +412,15 @@ public class Sem4Visitor extends Visitor
         }
     }
 
+    // return the IDType of the class being instantiated
+    @Override
+    public Object visit(NewObject n){
+        n.type = n.objType;
+        return n.objType;
+    }
+
+    //arrays
+
     // check .length is called on an array and return int
     @Override
     public Object visit(ArrayLength n){
@@ -421,13 +430,6 @@ public class Sem4Visitor extends Visitor
         }
         n.type = Int;
         return Int;
-    }
-
-    // return the IDType of the class being instantiated
-    @Override
-    public Object visit(NewObject n){
-        n.type = n.objType;
-        return n.objType;
     }
 
     // ensure size is int and wrap the base type in an ArrayType
@@ -440,6 +442,26 @@ public class Sem4Visitor extends Visitor
         }
         n.type = new ArrayType(n.pos, n.objType);
         return n.type;
+    }
+
+    // a[i] has to be an array, index must be int type
+    @Override
+    public Object visit(ArrayLookup n){
+        // check size expression is an int
+        Type arrType = safeType((Type)n.arrExp.accept(this));
+        Type ideType = safeType((Type)n.idxExp.accept(this));
+        if(!ideType.isInt()){
+            errorMsg.error(n.pos, CompError.TypeMismatch(ideType, Int));
+        }
+        if(!arrType.isArray()){
+            errorMsg.error(n.pos, CompError.ArrayType());
+            n.type = Error;
+            return Error;
+        }
+
+        Type elemType = ((ArrayType) arrType).baseType;
+        n.type = elemType;
+        return elemType;
     }
 
     // helper method searches method by name 
@@ -509,7 +531,7 @@ public class Sem4Visitor extends Visitor
 
     @Override
     public Object visit(Call n){
-        // determine typeof object being called
+        // determine type of object being called
         Type objType = safeType((Type)n.obj.accept(this));
 
         // visit all arguments passed in
@@ -529,6 +551,7 @@ public class Sem4Visitor extends Visitor
         ClassDecl receiverClass = ((IDType) objType).link;
         MethodDecl method = findMethod(receiverClass, n.methName);
 
+        // error if the method name doesn't exist in the hierarchy
         if(method == null){
             errorMsg.error(n.pos, CompError.UndefinedMethod(n.methName, objType));
             n.type = Error;
@@ -562,10 +585,31 @@ public class Sem4Visitor extends Visitor
             n.type = nonVoidMethod.rtnType;
             return n.type;
         } else {
-            // method is 'void', so has no return type
+            // void methods have no return type
             n.type = Void;
             return Void;
         }
+    }
+
+    // call used as a statement
+    @Override
+    public Object visit(CallStmt n){
+        n.callExp.accept(this);
+        return null;
+    }
+ 
+    // block
+    @Override
+    public Object visit(Block n){
+        n.stmts.accept(this);
+        return null;
+    }
+
+    // statement wrapping a local variable declaration
+    @Override
+    public Object visit(LocalDeclStmt n){
+        n.localVarDecl.accept(this);
+        return null;
     }
 
     // LocalVarDecl: check that the init expression type is a subtype of the declared type
@@ -622,6 +666,5 @@ public class Sem4Visitor extends Visitor
 
         return null;
     }
-
 }
 
