@@ -1,7 +1,7 @@
 package visitor;
 
-import syntaxtree.*;
 import errorMsg.*;
+import syntaxtree.*;
 
 // The purpose of this class it detect and report unreachable code,
 // according to Java's rules.
@@ -136,4 +136,99 @@ public class Sem5Visitor extends Visitor
     public Object visit(LocalDeclStmt n){
         return null;
     }
+
+    @Override 
+    public Object visit(ClassDecl n){
+        n.decls.accept(this);
+        return null;
+    }
+
+    // helper method evaluate a constant int expression
+    private Integer evalConstant(Exp e){
+        // plain number
+        if(e instanceof IntLit){
+            IntLit literal = (IntLit) e;
+            return literal.val;
+        }
+
+        // addition
+        if(e instanceof Plus){
+            Plus p = (Plus) e;
+            Integer leftside = evalConstant(p.left);
+            Integer rightside = evalConstant(p.right);
+            
+            // add 2 ints
+            if(leftside != null && rightside != null){
+                return leftside + rightside;
+            }
+        }
+
+        // subtraction
+        if(e instanceof Minus){
+            Minus m = (Minus) e;
+            Integer leftside = evalConstant(m.left);
+            Integer rightside = evalConstant(m.right);
+
+            // subtract 2 ints
+            if(leftside != null && rightside != null){
+                return leftside - rightside;
+            }
+        }
+
+        // multiplicaion
+        if(e instanceof Times){
+            Times t = (Times) e;
+            Integer leftside = evalConstant(t.left);
+            Integer rightside = evalConstant(t.right);
+            
+            // multiply 2 ints
+            if(leftside != null && rightside != null){
+                return leftside * rightside;
+            }
+        }
+
+        // division
+        if(e instanceof Divide){
+            Divide d = (Divide) e;
+            Integer leftside = evalConstant(d.left);
+            Integer rightside = evalConstant(d.right);
+            
+            // divide 2 ints
+            if(leftside != null && rightside != null){
+                return leftside / rightside;
+            }
+        }
+
+        // remainder
+        if(e instanceof Remainder){
+            Remainder r = (Remainder) e;
+            Integer leftside = evalConstant(r.left);
+            Integer rightside = evalConstant(r.right);
+            
+            // divide 2 ints
+            if(leftside != null && rightside != null){
+                return leftside % rightside;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public Object visit(NewArray n){
+        Integer val = evalConstant(n.sizeExp);
+        if (val != null && val < 0){
+            errorMsg.warning(n.sizeExp.pos, CompWarning.NegativeLength());
+        }
+        return null;
+    }
+
+    @Override
+    public Object visit(ArrayLookup n) {
+        Integer val = evalConstant(n.idxExp);
+        if (val != null && val < 0){
+            errorMsg.warning(n.idxExp.pos, CompWarning.NegativeIndex());
+        }
+        return null;
+    }
+
 }

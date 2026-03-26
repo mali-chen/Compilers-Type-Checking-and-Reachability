@@ -231,7 +231,7 @@ public class Main
                 ast.accept(new PrettyPrintVisitor(true, false, outputStream));
                 break;
             case VERBOSE_PRETTY_PRINT: 
-                ast.accept(new PrettyPrintVisitor(true, false, true, outputStream));
+                ast.accept(new PrettyPrintVisitor(true, true, true, outputStream));
                 break;
             case PRINT: 
                 ast.accept(new TreeDrawerVisitor(outputStream));
