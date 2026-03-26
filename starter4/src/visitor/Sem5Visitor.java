@@ -48,6 +48,10 @@ public class Sem5Visitor extends Visitor
     public Object visit(MethodDeclNonVoid n){
         canReach = true;
         visitStmts(n.stmts);
+
+        if(n.rtnExp != null){
+            n.rtnExp.accept(this);
+        }
         return null;
     }
 
@@ -124,16 +128,22 @@ public class Sem5Visitor extends Visitor
 
     @Override
     public Object visit(Assign n){
+        if(n.lhs != null) n.lhs.accept(this);
+        if(n.rhs != null) n.rhs.accept(this);
         return null;
     }
 
     @Override
     public Object visit(CallStmt n){
+        if(n.callExp != null) n.callExp.accept(this);
         return null;
     }
 
     @Override 
     public Object visit(LocalDeclStmt n){
+        if(n.localVarDecl != null){
+            n.localVarDecl.accept(this);
+        }
         return null;
     }
 
@@ -213,19 +223,28 @@ public class Sem5Visitor extends Visitor
         return null;
     }
 
+    // array
     @Override
     public Object visit(NewArray n){
+        n.sizeExp.accept(this);
+
         Integer val = evalConstant(n.sizeExp);
-        if (val != null && val < 0){
+        // warning if length of index is negative
+        if(val != null && val < 0){
             errorMsg.warning(n.sizeExp.pos, CompWarning.NegativeLength());
         }
         return null;
     }
 
+    // array index
     @Override
     public Object visit(ArrayLookup n) {
+        n.arrExp.accept(this);
+        n.idxExp.accept(this);
+
         Integer val = evalConstant(n.idxExp);
-        if (val != null && val < 0){
+        // warning if index is negative
+        if(val != null && val < 0){
             errorMsg.warning(n.idxExp.pos, CompWarning.NegativeIndex());
         }
         return null;

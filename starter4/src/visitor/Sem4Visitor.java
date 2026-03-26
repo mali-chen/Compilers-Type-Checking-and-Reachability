@@ -402,6 +402,7 @@ public class Sem4Visitor extends Visitor
         return false;
     }
 
+    // helper function converts null types to "Error" to prevent crashes
     private Type safeType(Type t){
         // subexpression missing, return "Error" type
         if (t == null){
